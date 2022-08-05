@@ -1,0 +1,76 @@
+#merge samples of interest -----------------------------------------------------------------------
+
+allsamples <- merge(H501DFCm_clean, y = c(H510DFCm_clean, H486DFCm_clean, H488DFCm_clean, H494DFCm_clean), project = "Samples")
+
+# standard preprocessing workflow
+allsamples <- NormalizeData(object = allsamples)
+allsamples <- FindVariableFeatures(object = allsamples)
+allsamples <- ScaleData(object = allsamples)
+allsamples <- RunPCA(object = allsamples) #linear dimensional data reduction
+ElbowPlot(allsamples)
+allsamples <- FindNeighbors(object = allsamples, dims = 1:20 )
+DimPlot(allsamples, group.by = "RNA_snn_res.0.1", reduction = "pca")
+allsamples <- RunUMAP(object = allsamples, dims = 1:20)
+
+allsamples <- FindClusters(object = allsamples, resolution = c(0.05, 0.1, 0.3, 0.5))
+
+#play around with resolution to determine how many clusters needed -----------------------------------------------------------------------
+DimPlot(allsamples, group.by = "RNA_snn_res.0.1", label = TRUE)
+
+
+# look for differentially expressed genes between clusters using default thresholds -----------------------------------------------------------------------
+allsamples_markers <- FindAllMarkers(allsamples, log2FC.threshold = 0.2, test.use = "wilcox",
+                                   min.pct = 0.1, min.diff.pct = 0.2, only.pos = TRUE, max.cells.per.ident = 50,
+                                   assay = "RNA")
+                                   
+
+#adjust pct threshold for gene selection to extend gene list
+#############
+
+listsA <- c("AQP4", "ADGRV1","APOLD1", "HES1","PLP1", "PDGFRA", "DOCK2", "RUNX1", "GAD2", "GAD1", "SP9", "SATB2", "NMDAR1", "SST", "PAX6")
+# Detect gene expression through heatmapp using markers from previous literature
+
+DoHeatmap(allsamples, features = listsA)
+
+# find the top 10 expressed markers per cluster
+
+allsamples_markers %>%
+  group_by(cluster) %>%
+  top_n(-10, p_val_adj) -> top10
+
+data <- ScaleData(allsamples, features = as.character(unique(top10$gene)), assay = "RNA")
+DoHeatmap(data, features = as.character(unique(top10$gene)), group.by = "seurat_clusters",
+          assay = "RNA")
+
+
+###############
+FeaturePlot(allsamples, features = c("AQP4", "ADGRV1")); #astrocytes
+FeaturePlot(allsamples,features = c("APOLD1", "SOX2", "SOX10")) + ggtitle("APOLD1: Endothelial cells"); #not strong
+FeaturePlot(allsamples,features ="PLP1") + ggtitle("PLP1: Oligodendrocytes");
+FeaturePlot(allsamples,features ="PDGFRA") + ggtitle("PDGFRA: OPC");
+FeaturePlot(allsamples,features =c("GAD2", "GAD1")); #inhibitory
+FeaturePlot(allsamples,features =c("DOCK2", "RUNX1")) #microglia;
+FeaturePlot(allsamples,features =c("ACHE")) #cholinergic
+FeaturePlot(allsamples,features =c("LMX1B")) #dopaminergic
+FeaturePlot(allsamples,features =c("SATB2", "NMDAR1")) #excitatory/glutamergic
+FeaturePlot(allsamples,features =c("SLC32A1")) #glycinergic
+FeaturePlot(allsamples,features =c("FOXA2", "GIRK2")) #seratonergic
+FeaturePlot(allsamples,features =c("PAX6", "HES1", "GFAP")) #radial glia
+
+
+current.cluster.ids <- c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15" )
+
+# Enter cluster id's based on what you think is appropriately expressed --------------------------------------------------------------
+
+new.cluster.ids <- c("Oligodendrocyte", "Astrocytes", "Excitatory", "OPC", "Microglia", "Excitatory", "Inhibitory", 
+                     "Inhibitory", "Inhibitory", "Excitatory", "Excitatory", "Endothelial", "Endothelial", "Oligodendrocyte", "Astrocytes", "Oligodendrocyte")
+
+# Add labels to UMAP plot
+names(new.cluster.ids) <- levels(allsamples)
+allsamples <- RenameIdents(allsamples, new.cluster.ids)
+DimPlot(allsamples, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend() + ggtitle("Currently Identified Markers")
+
+# Save Seurat object for trajectory analysis --------------------------------------------------------------
+library(SeuratDisk)
+library(SeuratData)
+SaveH5Seurat(allsamples, "/gpfs/ycga/project/sestan/ah2498/allsamples")
