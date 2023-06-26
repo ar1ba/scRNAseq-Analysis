@@ -1,6 +1,6 @@
 #merge samples of interest -----------------------------------------------------------------------
 
-allsamples <- merge(H501DFCm_clean, y = c(H510DFCm_clean, H486DFCm_clean, H488DFCm_clean, H494DFCm_clean), project = "Samples")
+allsamples <- merge(), project = "Samples")
 
 # standard preprocessing workflow
 allsamples <- NormalizeData(object = allsamples)
@@ -73,4 +73,4 @@ DimPlot(allsamples, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend(
 # Save Seurat object for trajectory analysis --------------------------------------------------------------
 library(SeuratDisk)
 library(SeuratData)
-SaveH5Seurat(allsamples, "/gpfs/ycga/project/sestan/ah2498/allsamples")
+SaveH5Seurat(allsamples, "")
