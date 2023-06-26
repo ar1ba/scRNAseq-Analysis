@@ -6,7 +6,7 @@ library(tidyverse)
 
 # load matrix from shared folder ---------------------------------------------------------------------------------------
 
-H488DFCm <- Read10X(data.dir = "/gpfs/ycga/project/sestan/sestanlabShare_from_Dan/CellRanger/H488DFCm/RNAalone/filtered_feature_bc_matrix")
+H488DFCm <- Read10X(data.dir = "")
 H488DFCm.seurat.obj <- CreateSeuratObject(counts = H488DFCm, project = 'matrix', min.cells = 
                                           3, min.features = 200)
 
